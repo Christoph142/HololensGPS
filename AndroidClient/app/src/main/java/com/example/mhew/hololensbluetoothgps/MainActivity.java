@@ -17,17 +17,26 @@ import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+
+import org.w3c.dom.Text;
 
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
     TextView textViewTime;
     TextView textViewLatitude;
     TextView textViewLongitude;
+    TextView textViewAltitude;
+    TextView textViewSpeed;
+    TextView textViewHeading;
     MapView mapView;
+    GoogleMap map;
 
     BluetoothAdapter mBluetoothAdapter;
     BluetoothLeAdvertiser mBLEAdvertiser;
@@ -38,16 +47,27 @@ public class MainActivity extends AppCompatActivity {
     static final int PERMISSION_RESULT_CODE = 1;
     Location currentLocation;
 
+    OnMapReadyCallback onMapReady = new OnMapReadyCallback() {
+        public void onMapReady(GoogleMap newMap) {
+            map = newMap;
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         // Setup UI References
-        textViewTime = (TextView) findViewById(R.id.textViewTime);
-        textViewLatitude = (TextView) findViewById(R.id.textViewLatitude);
-        textViewLongitude = (TextView) findViewById(R.id.textViewLongitude);
-        mapView = (MapView) findViewById(R.id.mapView);
+        textViewTime = findViewById(R.id.textViewTime);
+        textViewLatitude = findViewById(R.id.textViewLatitude);
+        textViewLongitude = findViewById(R.id.textViewLongitude);
+        textViewAltitude = findViewById(R.id.textViewAltitude);
+        textViewSpeed = findViewById(R.id.textViewSpeed);
+        textViewHeading = findViewById(R.id.textViewHeading);
+        mapView = findViewById(R.id.mapView);
+        mapView.onCreate(savedInstanceState);
+        mapView.getMapAsync(onMapReady);
 
         if (savedInstanceState == null) {
             // Use this check to determine whether BLE is supported on the device. Then you can
@@ -247,9 +267,17 @@ public class MainActivity extends AppCompatActivity {
 
     public void UpdatePosition(Location location) {
         currentLocation = location;
-        textViewTime.setText(new SimpleDateFormat("HH.mm.ss").format(new Date()));
+        textViewTime.setText(new SimpleDateFormat("HH:mm:ss").format(currentLocation.getTime()));
         textViewLatitude.setText(Double.toString(currentLocation.getLatitude()));
         textViewLongitude.setText(Double.toString(currentLocation.getLongitude()));
+        textViewAltitude.setText(Double.toString(currentLocation.getAltitude()));
+        textViewSpeed.setText(Double.toString(currentLocation.getSpeed()));
+        textViewHeading.setText(Double.toString(currentLocation.getBearing()));
+        if (map != null) {
+            map.setLatLngBoundsForCameraTarget(new LatLngBounds(
+                    new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()),
+                    new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude())));
+        }
         restartAdvertising(BEACON_ID, buildGPSPacket());
     }
 
